@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using task4p1.Models;
-using task4p1.Repositories;
+using task4p1.Services;
 
 namespace task4p1.Controllers
 {
@@ -8,50 +8,52 @@ namespace task4p1.Controllers
     [Route("api/[controller]")]
     public class AuthorsController : ControllerBase
     {
-        private readonly IAuthorsRepository _repo;
+        private readonly AuthorService _service;
 
-        public AuthorsController(IAuthorsRepository repo)
+        public AuthorsController(AuthorService service)
         {
-            _repo = repo;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<List<Author>> GetAll()
+        public ActionResult<List<AuthorDto>> GetAll()
         {
-            return Ok(_repo.GetAllAuthors());
+            return Ok(_service.GetAll());
         }
 
         [HttpGet("{id}", Name = "GetAuthorById")]
-        public ActionResult<Author> GetById(int id)
+        public ActionResult<AuthorDto> GetById(int id)
         {
-            var author = _repo.GetAuthorById(id);
+            var author = _service.GetById(id);
             if (author == null) return NotFound();
             return Ok(author);
         }
 
         [HttpPost]
-        public ActionResult<Author> Create(Author author)
+        public ActionResult<AuthorDto> Create(AuthorDto author)
         {
-            _repo.NewAuthor(author);
-            return CreatedAtRoute("GetAuthorById", new { id = author.Id }, author);
+            var (success, error, created) = _service.Create(author);
+            if (!success)
+            {
+                return BadRequest(new { error });
+            }
+
+            return CreatedAtRoute("GetAuthorById", new { id = created!.Id }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Author author)
+        public IActionResult Update(int id, AuthorDto author)
         {
-            if (id != author.Id) return BadRequest();
-            var existing = _repo.GetAuthorById(id);
-            if (existing == null) return NotFound();
-            _repo.UpdateAuthor(author);
+            var (found, success, error) = _service.Update(id, author);
+            if (!found) return NotFound();
+            if (!success) return BadRequest(new { error });
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var existing = _repo.GetAuthorById(id);
-            if (existing == null) return NotFound();
-            _repo.DeleteAuthor(id);
+            if (!_service.Delete(id)) return NotFound();
             return NoContent();
         }
     }

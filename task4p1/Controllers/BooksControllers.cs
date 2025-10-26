@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using task4p1.Models;
-using task4p1.Repositories;
+using task4p1.Services;
 
 namespace task4p1.Controllers
 {
@@ -8,50 +8,52 @@ namespace task4p1.Controllers
     [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
-        private readonly IBooksRepository _repo;
+        private readonly BookService _service;
 
-        public BooksController(IBooksRepository repo)
+        public BooksController(BookService service)
         {
-            _repo = repo;
+            _service = service;
         }
 
         [HttpGet]
-        public ActionResult<List<Book>> GetAll()
+        public ActionResult<List<BookDto>> GetAll()
         {
-            return Ok(_repo.GetAllBooks());
+            return Ok(_service.GetAll());
         }
 
         [HttpGet("{id}", Name = "GetBookById")]
-        public ActionResult<Book> GetById(int id)
+        public ActionResult<BookDto> GetById(int id)
         {
-            var book = _repo.GetBookById(id);
+            var book = _service.GetById(id);
             if (book == null) return NotFound();
             return Ok(book);
         }
 
         [HttpPost]
-        public ActionResult<Book> Create(Book book)
+        public ActionResult<BookDto> Create(BookDto book)
         {
-            _repo.NewBook(book);
-            return CreatedAtRoute("GetBookById", new { id = book.Id }, book);
+            var (success, error, created) = _service.Create(book);
+            if (!success)
+            {
+                return BadRequest(new { error });
+            }
+
+            return CreatedAtRoute("GetBookById", new { id = created!.Id }, created);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, Book book)
+        public IActionResult Update(int id, BookDto book)
         {
-            if (id != book.Id) return BadRequest();
-            var existing = _repo.GetBookById(id);
-            if (existing == null) return NotFound();
-            _repo.UpdateBook(book);
+            var (found, success, error) = _service.Update(id, book);
+            if (!found) return NotFound();
+            if (!success) return BadRequest(new { error });
             return NoContent();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
         {
-            var existing = _repo.GetBookById(id);
-            if (existing == null) return NotFound();
-            _repo.DeleteBook(id);
+            if (!_service.Delete(id)) return NotFound();
             return NoContent();
         }
     }
