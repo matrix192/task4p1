@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Linq;
 using task4p1.Models;
 using task4p1.Repositories;
 
@@ -76,15 +77,17 @@ namespace task4p1.Services
                 DateOfBirth = a.DateOfBirth.ToString(DateFormat, CultureInfo.InvariantCulture)
             };
 
-        private static bool TryParseDate(string? s, out DateOnly date)
+        private static bool TryParseDate(string? s, out DateTime date)
         {
             date = default;
             if (string.IsNullOrWhiteSpace(s)) return false;
 
-            if (DateOnly.TryParseExact(s.Trim(), DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+            var str = s.Trim();
+
+            if (DateTime.TryParseExact(str, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
                 return true;
 
-            return DateOnly.TryParse(s.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
+            return DateTime.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.None, out date);
         }
     }
 }
