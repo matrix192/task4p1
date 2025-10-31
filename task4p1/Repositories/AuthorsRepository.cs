@@ -1,50 +1,56 @@
-﻿using task4p1.Models;
-using System.Linq;
+﻿using Microsoft.EntityFrameworkCore;
+using task4p1.Data;
+using task4p1.Models;
 
 namespace task4p1.Repositories
 {
     public class AuthorsRepository : IAuthorsRepository
     {
-        private readonly List<Author> authors = new();
-        private int nextId = 1;
+        private readonly LibraryContext _context;
+
+        public AuthorsRepository(LibraryContext context)
+        {
+            _context = context;
+        }
 
         public void NewAuthor(Author author)
         {
-            author.Id = nextId++;
-            authors.Add(new Author
-            {
-                Id = author.Id,
-                Name = author.Name,
-                DateOfBirth = author.DateOfBirth
-            });
+            _context.Authors.Add(author);
+            _context.SaveChanges();
         }
 
         public List<Author> GetAllAuthors()
         {
-            return authors;
+            return _context.Authors
+                           .Include(a => a.Books)
+                           .ToList();
         }
 
         public void DeleteAuthor(int authorId)
         {
-            var authorToDelete = authors.FirstOrDefault(a => a.Id == authorId);
+            var authorToDelete = _context.Authors.Find(authorId);
             if (authorToDelete != null)
             {
-                authors.Remove(authorToDelete);
+                _context.Authors.Remove(authorToDelete);
+                _context.SaveChanges();
             }
         }
 
         public Author? GetAuthorById(int authorId)
         {
-            return authors.FirstOrDefault(a => a.Id == authorId);
+            return _context.Authors
+                           .Include(a => a.Books)
+                           .FirstOrDefault(a => a.Id == authorId);
         }
 
         public void UpdateAuthor(Author author)
         {
-            var authorToUpdate = authors.FirstOrDefault(a => a.Id == author.Id);
-            if (authorToUpdate != null)
+            var existing = _context.Authors.Find(author.Id);
+            if (existing != null)
             {
-                authorToUpdate.Name = author.Name;
-                authorToUpdate.DateOfBirth = author.DateOfBirth;
+                existing.Name = author.Name;
+                existing.DateOfBirth = author.DateOfBirth;
+                _context.SaveChanges();
             }
         }
     }
